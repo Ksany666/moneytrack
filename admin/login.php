@@ -1,9 +1,7 @@
 <?php
-// admin/login.php
 require_once '../config/koneksi.php';
 require_once '../config/crypto.php';
 
-// Kalau sudah login, lempar ke dashboard
 if (isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] === true) {
     header("Location: dashboard.php");
     exit;
@@ -15,7 +13,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $private_key = $_POST['private_key'];
 
-    // Cari user di database
     $stmt = $conn->prepare("SELECT auth_verify FROM users WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
@@ -25,17 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $row = $result->fetch_assoc();
         $encrypted_verify = $row['auth_verify'];
 
-        // PROSES INTI: Coba dekripsi teks dari DB pakai kunci yang dimasukkan user
         $decrypted = decryptData($encrypted_verify, $private_key);
 
-        // Cek apakah hasil dekripsinya sesuai dengan teks asli
         if ($decrypted === 'MoneyTrackValid') {
-            // Jika berhasil, set session
             $_SESSION['is_logged_in'] = true;
             $_SESSION['username'] = $username;
             
-            // PENTING: Kunci disimpan di session agar bisa dipakai untuk mendekripsi
-            // data transaksi & kategori di halaman admin nanti secara otomatis.
             $_SESSION['private_key'] = $private_key; 
 
             header("Location: dashboard.php");
