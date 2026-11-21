@@ -78,6 +78,7 @@
                             <li>Kunci tersebut tidak pernah disimpan ke dalam database, melainkan hanya dipegang oleh sistem di memori (Session) selama admin aktif.</li>
                             <li>Setiap input nominal dan keterangan dari pengguna akan digabung dengan <i>Initialization Vector (IV)</i> dan dienkripsi menjadi teks acak (Ciphertext).</li>
                             <li>Jika seseorang membobol database, mereka hanya akan melihat teks acak tanpa bisa membacanya tanpa Private Key yang benar.</li>
+                            <li><b>Pertahanan Honeypot (Decoy Mode):</b> Jika seseorang mencoba masuk dengan Private Key yang tidak cocok, sistem tetap mengizinkan masuk ke dashboard umpan di mana seluruh antarmuka, formulir, data, hingga tombol logout terenkripsi total (*ciphertext*) demi mengelabui penyerang dan menjaga data asli tetap utuh.</li>
                         </ul>
                     </div>
                 </div>

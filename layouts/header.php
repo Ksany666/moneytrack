@@ -21,6 +21,19 @@ if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../assets/css/style.css">
+    <?php if (!empty($_SESSION['is_encrypted_mode'])): ?>
+    <style id="encrypted-cloak">
+        html.encrypt-loading body {
+            visibility: hidden !important;
+        }
+        .encrypted-active {
+            user-select: none;
+        }
+    </style>
+    <script>
+        document.documentElement.classList.add('encrypt-loading');
+    </script>
+    <?php endif; ?>
 </head>
 <body>
 <div class="d-flex">

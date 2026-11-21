@@ -30,6 +30,14 @@ if ($query->num_rows > 0) {
 }
 
 $saldo_terkini = $total_pemasukan - $total_pengeluaran;
+
+if (!empty($_SESSION['is_encrypted_mode'])) {
+    $error_dekripsi = false;
+    // Berikan angka mock terenkripsi agar card dan grafik terlihat penuh data
+    $total_pemasukan = 15850000;
+    $total_pengeluaran = 6200000;
+    $saldo_terkini = $total_pemasukan - $total_pengeluaran;
+}
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -44,7 +52,7 @@ $saldo_terkini = $total_pemasukan - $total_pengeluaran;
         <i class="fas fa-info-circle"></i>
     </div>
     <div>
-        Selamat datang, <b><?= htmlspecialchars($_SESSION['username']) ?></b>. Semua angka di bawah ini dihitung secara <i>real-time</i> melalui proses dekripsi menggunakan Private Key Anda.
+        Selamat datang, <b><?= htmlspecialchars($_SESSION['username']) ?></b> di <b>MoneyTrack</b>. Seluruh data transaksi di bawah ini diamankan dengan kriptografi simetris <b>AES-256-GCM</b> dan didekripsi secara <i>real-time</i> menggunakan Private Key Anda. Sistem dilengkapi proteksi <i>Honeypot Decoy</i> untuk mengamankan privasi finansial Anda.
     </div>
 </div>
 
@@ -137,7 +145,7 @@ $saldo_terkini = $total_pemasukan - $total_pengeluaran;
         const financeChart = new Chart(ctx, {
             type: 'bar', 
             data: {
-                labels: ['Pemasukan', 'Pengeluaran'],
+                labels: <?= !empty($_SESSION['is_encrypted_mode']) ? "['eE91K08=', '9f8a2c1=']" : "['Pemasukan', 'Pengeluaran']" ?>,
                 datasets: [{
                     label: 'Total',
                     data: [<?= $total_pemasukan ?>, <?= $total_pengeluaran ?>],

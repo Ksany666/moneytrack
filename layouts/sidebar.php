@@ -24,7 +24,7 @@
             </a>
         </li>
         <li class="nav-item mt-5">
-            <a href="logout.php" class="nav-link text-danger fw-bold">
+            <a href="logout.php" class="nav-link text-danger fw-bold" id="btnLogout" data-no-encrypt="true">
                 <i class="fas fa-sign-out-alt me-3"></i> Logout
             </a>
         </li>

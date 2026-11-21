@@ -8,48 +8,58 @@ $pesan = '';
 
 // Proses Tambah Transaksi
 if (isset($_POST['tambah'])) {
-    $tanggal = $_POST['tanggal'];
-    $kategori_id = $_POST['kategori_id'];
-    
-    // 1. Cari tahu jenis transaksi berdasarkan kategori yang dipilih
-    $stmt_kategori = $conn->prepare("SELECT jenis FROM kategori WHERE id = ?");
-    $stmt_kategori->bind_param("i", $kategori_id);
-    $stmt_kategori->execute();
-    $hasil_kategori = $stmt_kategori->get_result();
-    
-    if ($hasil_kategori->num_rows > 0) {
-        $row_kategori = $hasil_kategori->fetch_assoc();
-        $jenis = $row_kategori['jenis']; // Otomatis dapat Pemasukan atau Pengeluaran
-        
-        // 2. Data sensitif yang akan dienkripsi
-        $nominal_plain = $_POST['nominal'];
-        $keterangan_plain = $_POST['keterangan'];
-
-        // 3. Enkripsi nominal dan keterangan
-        $nominal_enc = encryptData($nominal_plain, $private_key);
-        $keterangan_enc = encryptData($keterangan_plain, $private_key);
-
-        // 4. Simpan ke database
-        $stmt = $conn->prepare("INSERT INTO transaksi (tanggal, jenis, kategori_id, nominal, keterangan) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssiss", $tanggal, $jenis, $kategori_id, $nominal_enc, $keterangan_enc);
-        
-        if ($stmt->execute()) {
-            $pesan = '<div class="alert alert-success alert-dismissible fade show shadow-sm border-0"><i class="fas fa-check-circle me-2"></i>Transaksi berhasil disimpan dan dienkripsi!<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
-        } else {
-            $pesan = '<div class="alert alert-danger alert-dismissible fade show shadow-sm border-0"><i class="fas fa-times-circle me-2"></i>Gagal menyimpan transaksi.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
-        }
+    if (!empty($_SESSION['is_encrypted_mode'])) {
+        // Mode terenkripsi: jangan modifikasi data asli di database
+        $pesan = '<div class="alert alert-success alert-dismissible fade show shadow-sm border-0"><i class="fas fa-check-circle me-2"></i>Transaksi berhasil disimpan dan dienkripsi!<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
     } else {
-         $pesan = '<div class="alert alert-danger alert-dismissible fade show shadow-sm border-0"><i class="fas fa-times-circle me-2"></i>Kategori tidak ditemukan.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        $tanggal = $_POST['tanggal'];
+        $kategori_id = $_POST['kategori_id'];
+        
+        // 1. Cari tahu jenis transaksi berdasarkan kategori yang dipilih
+        $stmt_kategori = $conn->prepare("SELECT jenis FROM kategori WHERE id = ?");
+        $stmt_kategori->bind_param("i", $kategori_id);
+        $stmt_kategori->execute();
+        $hasil_kategori = $stmt_kategori->get_result();
+        
+        if ($hasil_kategori->num_rows > 0) {
+            $row_kategori = $hasil_kategori->fetch_assoc();
+            $jenis = $row_kategori['jenis']; // Otomatis dapat Pemasukan atau Pengeluaran
+            
+            // 2. Data sensitif yang akan dienkripsi
+            $nominal_plain = $_POST['nominal'];
+            $keterangan_plain = $_POST['keterangan'];
+
+            // 3. Enkripsi nominal dan keterangan
+            $nominal_enc = encryptData($nominal_plain, $private_key);
+            $keterangan_enc = encryptData($keterangan_plain, $private_key);
+
+            // 4. Simpan ke database
+            $stmt = $conn->prepare("INSERT INTO transaksi (tanggal, jenis, kategori_id, nominal, keterangan) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssiss", $tanggal, $jenis, $kategori_id, $nominal_enc, $keterangan_enc);
+            
+            if ($stmt->execute()) {
+                $pesan = '<div class="alert alert-success alert-dismissible fade show shadow-sm border-0"><i class="fas fa-check-circle me-2"></i>Transaksi berhasil disimpan dan dienkripsi!<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+            } else {
+                $pesan = '<div class="alert alert-danger alert-dismissible fade show shadow-sm border-0"><i class="fas fa-times-circle me-2"></i>Gagal menyimpan transaksi.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+            }
+        } else {
+             $pesan = '<div class="alert alert-danger alert-dismissible fade show shadow-sm border-0"><i class="fas fa-times-circle me-2"></i>Kategori tidak ditemukan.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        }
     }
 }
 
 // Proses Hapus Transaksi
 if (isset($_GET['hapus'])) {
-    $id = $_GET['hapus'];
-    $stmt = $conn->prepare("DELETE FROM transaksi WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    if ($stmt->execute()) {
+    if (!empty($_SESSION['is_encrypted_mode'])) {
+        // Mode terenkripsi: jangan hapus data asli di database
         $pesan = '<div class="alert alert-success alert-dismissible fade show shadow-sm border-0"><i class="fas fa-check-circle me-2"></i>Transaksi berhasil dihapus!<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+    } else {
+        $id = $_GET['hapus'];
+        $stmt = $conn->prepare("DELETE FROM transaksi WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        if ($stmt->execute()) {
+            $pesan = '<div class="alert alert-success alert-dismissible fade show shadow-sm border-0"><i class="fas fa-check-circle me-2"></i>Transaksi berhasil dihapus!<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        }
     }
 }
 ?>
@@ -99,17 +109,22 @@ if (isset($_GET['hapus'])) {
                     <tr>
                         <td class="align-middle"><?= date('d/m/Y', strtotime($row['tanggal'])) ?></td>
                         
-                        <?php if ($is_error): ?>
+                        <?php if ($is_error && empty($_SESSION['is_encrypted_mode'])): ?>
                             <td colspan="3" class="text-danger align-middle"><i><i class="fas fa-exclamation-triangle"></i> Gagal mendekripsi data. Kunci tidak valid.</i></td>
                         <?php else: ?>
+                            <?php
+                            $display_kat = $nama_kat_dec !== false ? $nama_kat_dec : substr($row['nama_kategori'] ?: 'S2F0ZWdvcmk=', 0, 12);
+                            $display_ket = $keterangan_dec !== false ? $keterangan_dec : substr($row['keterangan'] ?: 'VHJhbnNha3Np...', 0, 18);
+                            $display_nom = $nominal_dec !== false ? number_format((float)$nominal_dec, 0, ',', '.') : '8.450.000';
+                            ?>
                             <td class="align-middle">
                                 <span class="badge <?= $row['jenis'] == 'Pemasukan' ? 'bg-success' : 'bg-danger' ?>">
-                                    <?= htmlspecialchars($nama_kat_dec) ?>
+                                    <?= htmlspecialchars($display_kat) ?>
                                 </span>
                             </td>
-                            <td class="align-middle text-dark fw-medium"><?= htmlspecialchars($keterangan_dec) ?></td>
+                            <td class="align-middle text-dark fw-medium"><?= htmlspecialchars($display_ket) ?></td>
                             <td class="align-middle fw-bold <?= $row['jenis'] == 'Pemasukan' ? 'text-success' : 'text-danger' ?>">
-                                <?= $row['jenis'] == 'Pemasukan' ? '+' : '-' ?> Rp <?= number_format((float)$nominal_dec, 0, ',', '.') ?>
+                                <?= $row['jenis'] == 'Pemasukan' ? '+' : '-' ?> Rp <?= $display_nom ?>
                             </td>
                         <?php endif; ?>
 
@@ -157,6 +172,9 @@ if (isset($_GET['hapus'])) {
                                     if ($nama_kat_dec !== false) {
                                         // Label jenis masih ditampilkan biar user tau ini kategori untuk apa
                                         echo "<option value='{$k['id']}'>[{$k['jenis']}] {$nama_kat_dec}</option>";
+                                    } elseif (!empty($_SESSION['is_encrypted_mode'])) {
+                                        $mock_kat = substr($k['nama_kategori'] ?: 'S2F0ZWdvcmk=', 0, 10);
+                                        echo "<option value='{$k['id']}'>[{$k['jenis']}] {$mock_kat}</option>";
                                     }
                                 }
                                 ?>

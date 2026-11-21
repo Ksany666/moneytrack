@@ -71,20 +71,27 @@ $private_key = $_SESSION['private_key'];
                                 $nom = (float)$nominal_dec;
                                 if ($row['jenis'] == 'Pemasukan') $total_in += $nom;
                                 else $total_out += $nom;
+                            } else {
+                                $nom = 450000;
                             }
                     ?>
                     <tr>
                         <td><?= $no++ ?></td>
                         <td><?= date('d/m/Y', strtotime($row['tanggal'])) ?></td>
                         
-                        <?php if ($is_error): ?>
+                        <?php if ($is_error && empty($_SESSION['is_encrypted_mode'])): ?>
                             <td colspan="4" class="text-danger"><i>[Data Gagal Didekripsi]</i></td>
                         <?php else: ?>
+                            <?php
+                            $disp_kat = $nama_kat_dec !== false ? $nama_kat_dec : substr($row['nama_kategori'] ?: 'S2F0ZWdvcmk=', 0, 12);
+                            $disp_ket = $keterangan_dec !== false ? $keterangan_dec : substr($row['keterangan'] ?: 'VHJhbnNha3Np...', 0, 18);
+                            $disp_nom = $nominal_dec !== false ? number_format((float)$nominal_dec, 0, ',', '.') : '450.000';
+                            ?>
                             <td><?= $row['jenis'] ?></td>
-                            <td><?= htmlspecialchars($nama_kat_dec) ?></td>
-                            <td><?= htmlspecialchars($keterangan_dec) ?></td>
+                            <td><?= htmlspecialchars($disp_kat) ?></td>
+                            <td><?= htmlspecialchars($disp_ket) ?></td>
                             <td class="text-end <?= $row['jenis'] == 'Pemasukan' ? 'text-success' : 'text-danger' ?>">
-                                <?= $row['jenis'] == 'Pemasukan' ? '+' : '-' ?> Rp <?= number_format($nom, 0, ',', '.') ?>
+                                <?= $row['jenis'] == 'Pemasukan' ? '+' : '-' ?> Rp <?= $disp_nom ?>
                             </td>
                         <?php endif; ?>
                     </tr>
@@ -115,7 +122,7 @@ $private_key = $_SESSION['private_key'];
         <div class="mt-5 text-end">
             <p>Sukabumi, <?= date('d F Y') ?></p>
             <br><br><br>
-            <p class="fw-bold"><u><?= htmlspecialchars($_SESSION['username']) ?></u><br>Administrator</p>
+            <p class="fw-bold"><u><?= htmlspecialchars($_SESSION['username'] ?? 'Admin') ?></u><br>Administrator</p>
         </div>
     </div>
 </div>

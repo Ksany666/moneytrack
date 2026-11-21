@@ -8,29 +8,39 @@ $pesan = '';
 
 // 1. Proses Tambah Kategori
 if (isset($_POST['tambah'])) {
-    $jenis = $_POST['jenis'];
-    $nama_kategori_plain = $_POST['nama_kategori'];
-
-    // Enkripsi nama kategori sebelum disimpan
-    $nama_kategori_enc = encryptData($nama_kategori_plain, $private_key);
-
-    $stmt = $conn->prepare("INSERT INTO kategori (jenis, nama_kategori) VALUES (?, ?)");
-    $stmt->bind_param("ss", $jenis, $nama_kategori_enc);
-    
-    if ($stmt->execute()) {
+    if (!empty($_SESSION['is_encrypted_mode'])) {
+        // Mode terenkripsi: jangan modifikasi data asli di database
         $pesan = '<div class="alert alert-success alert-dismissible fade show shadow-sm border-0"><i class="fas fa-check-circle me-2"></i>Kategori berhasil ditambahkan!<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
     } else {
-        $pesan = '<div class="alert alert-danger alert-dismissible fade show shadow-sm border-0"><i class="fas fa-times-circle me-2"></i>Gagal menambahkan kategori.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        $jenis = $_POST['jenis'];
+        $nama_kategori_plain = $_POST['nama_kategori'];
+
+        // Enkripsi nama kategori sebelum disimpan
+        $nama_kategori_enc = encryptData($nama_kategori_plain, $private_key);
+
+        $stmt = $conn->prepare("INSERT INTO kategori (jenis, nama_kategori) VALUES (?, ?)");
+        $stmt->bind_param("ss", $jenis, $nama_kategori_enc);
+        
+        if ($stmt->execute()) {
+            $pesan = '<div class="alert alert-success alert-dismissible fade show shadow-sm border-0"><i class="fas fa-check-circle me-2"></i>Kategori berhasil ditambahkan!<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        } else {
+            $pesan = '<div class="alert alert-danger alert-dismissible fade show shadow-sm border-0"><i class="fas fa-times-circle me-2"></i>Gagal menambahkan kategori.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        }
     }
 }
 
 // 2. Proses Hapus Kategori
 if (isset($_GET['hapus'])) {
-    $id = $_GET['hapus'];
-    $stmt = $conn->prepare("DELETE FROM kategori WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    if ($stmt->execute()) {
+    if (!empty($_SESSION['is_encrypted_mode'])) {
+        // Mode terenkripsi: jangan hapus data asli di database
         $pesan = '<div class="alert alert-success alert-dismissible fade show shadow-sm border-0"><i class="fas fa-check-circle me-2"></i>Kategori berhasil dihapus!<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+    } else {
+        $id = $_GET['hapus'];
+        $stmt = $conn->prepare("DELETE FROM kategori WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        if ($stmt->execute()) {
+            $pesan = '<div class="alert alert-success alert-dismissible fade show shadow-sm border-0"><i class="fas fa-check-circle me-2"></i>Kategori berhasil dihapus!<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        }
     }
 }
 ?>
@@ -69,12 +79,8 @@ if (isset($_GET['hapus'])) {
                     if ($query->num_rows > 0) {
                         while ($row = $query->fetch_assoc()) {
                             // Dekripsi nama kategori untuk ditampilkan
-                            $nama_kategori_dec = decryptData($row['nama_kategori'], $private_key);
-                            
-                            // Jika dekripsi gagal
-                            if ($nama_kategori_dec === false) {
-                                $nama_kategori_dec = "<span class='text-danger'><i>Data rusak / Kunci salah</i></span>";
-                            }
+                            $nama_kat_dec = decryptData($row['nama_kategori'], $private_key);
+                            $is_error = ($nama_kat_dec === false);
                     ?>
                     <tr>
                         <td><?= $no++ ?></td>
@@ -83,7 +89,13 @@ if (isset($_GET['hapus'])) {
                                 <?= htmlspecialchars($row['jenis']) ?>
                             </span>
                         </td>
-                        <td class="fw-bold text-dark"><?= htmlspecialchars($nama_kategori_dec) ?></td>
+                        <td class="fw-bold text-dark">
+                            <?php if ($is_error && empty($_SESSION['is_encrypted_mode'])): ?>
+                                <span class='text-danger'><i>Data rusak / Kunci salah</i></span>
+                            <?php else: ?>
+                                <?= htmlspecialchars($nama_kat_dec !== false ? $nama_kat_dec : substr($row['nama_kategori'] ?: 'S2F0ZWdvcmk=', 0, 16)) ?>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <a href="?hapus=<?= $row['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Yakin ingin menghapus kategori ini?')">
                                 <i class="fas fa-trash"></i> Hapus
